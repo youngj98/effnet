@@ -58,9 +58,11 @@ def main(image_path, model_path):
             outputs_climate = model(image)
         probabilities = torch.softmax(outputs_climate, dim=1).squeeze().cpu().numpy()
         predicted_climate = torch.argmax(outputs_climate, dim=1).item()
+        
+        file_name = os.path.splitext(os.path.basename(image_path))[0]
 
         # Plot and print results
-        plot_image_with_predictions(image.squeeze(0), probabilities, true_label=None, pred_label=predicted_climate)
+        plot_image_with_predictions(image.squeeze(0), probabilities, true_label=None, pred_label=predicted_climate, name=file_name)
         print(f"Predicted Label: {class_names[predicted_climate]}")
         print("="*50)
 

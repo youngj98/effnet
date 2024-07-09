@@ -4,7 +4,7 @@ import torch
 
 class_names = ['Normal', 'Snowy', 'Rainy', 'Hazy']
 
-def plot_image_with_predictions(image, predictions, true_label, pred_label):
+def plot_image_with_predictions(image, predictions, true_label, pred_label, name):
     """
     Plot the image with class probabilities and true label.
 
@@ -13,6 +13,7 @@ def plot_image_with_predictions(image, predictions, true_label, pred_label):
         predictions (np.array): The class probabilities.
         true_label (int, optional): The true label of the image. Default: None.
         pred_label (int): The predicted label of the image. Default: None.
+        name (str): The name of the output image file.
     """
     # De-normalize the image
     image = image.permute(1, 2, 0).cpu().numpy()
@@ -32,4 +33,5 @@ def plot_image_with_predictions(image, predictions, true_label, pred_label):
             text += f"{class_name}: {predictions[i]:.2f}"
 
     plt.text(0.24, 0.6, text, fontsize=9, bbox=dict(facecolor='white', alpha=0.8), transform=plt.gcf().transFigure)
+    plt.savefig(f'output_{name}.png')
     plt.show()
