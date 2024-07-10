@@ -34,7 +34,7 @@ def plot_image_with_predictions(image, predictions, true_label, pred_label, name
             text += f"{class_name}: {predictions[i]:.2f}"
 
     plt.text(0.24, 0.6, text, fontsize=9, bbox=dict(facecolor='white', alpha=0.8), transform=plt.gcf().transFigure)
-    plt.savefig(f'results/test/output_{name}.png')
+    plt.savefig(f'results/test/output_{name}.png', transparent=True ,bbox_inches='tight')
     plt.show()
 
 def plot_metrics(metrics, save_dir):
