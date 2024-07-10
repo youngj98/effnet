@@ -4,6 +4,8 @@ from torchvision import transforms
 from torch.utils.data import DataLoader, Dataset
 from PIL import Image
 import numpy as np
+import random
+import shutil
 
 # Transformations
 transform = transforms.Compose([
@@ -70,6 +72,13 @@ def print_class_distribution(labels, dataset_name):
     distribution = dict(zip(unique, counts))
     print(f"Class distribution in {dataset_name} dataset: {distribution}")
 
+def save_class_distribution(labels, dataset_name, save_dir):
+    unique, counts = np.unique(labels, return_counts=True)
+    distribution = dict(zip(unique, counts))
+    with open(os.path.join(save_dir, f"{dataset_name}_class_distribution.txt"), 'w') as f:
+        f.write(f"Class distribution in {dataset_name} dataset: {distribution}\n")
+    print(f"Class distribution for {dataset_name} saved to {save_dir}")
+
 def get_data_loaders(train_files, val_files, test_files, train_val_dir, test_dir, transform, batch_size=16):
     # Create datasets
     train_dataset = WeatherDataset(train_files, train_val_dir, transform)
@@ -86,7 +95,7 @@ def get_data_loaders(train_files, val_files, test_files, train_val_dir, test_dir
 def balanced_sampling(file_list, labels):
     unique, counts = np.unique(labels, return_counts=True)
     min_count = min(counts)
-    sample_size = int(min_count * 0.1)
+    sample_size = int(min_count * 0.2)
 
     sampled_files = []
     sampled_labels = []
@@ -98,3 +107,19 @@ def balanced_sampling(file_list, labels):
         sampled_labels.extend([labels[i] for i in sampled_indices])
     
     return sampled_files, sampled_labels
+
+def sample_files_by_class(files, labels, n_samples=10):
+    sampled_files = {0: [], 1: [], 2: [], 3: []}  # assuming four classes: 0-Normal, 1-Snowy, 2-Rainy, 3-Hazy
+    for label in sampled_files.keys():
+        label_files = [file for file, lbl in zip(files, labels) if lbl == label]
+        sampled_files[label] = random.sample(label_files, min(n_samples, len(label_files)))
+    return sampled_files
+
+def save_sampled_images(sampled_files, root_dir, save_dir):
+    for label, files in sampled_files.items():
+        label_dir = os.path.join(save_dir, str(label))
+        os.makedirs(label_dir, exist_ok=True)
+        for file in files:
+            src = os.path.join(root_dir, file + '.jpg')
+            dst = os.path.join(label_dir, file + '.jpg')
+            shutil.copyfile(src, dst)

@@ -69,7 +69,7 @@ def main(image_path, model_path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Weather Classification Inference")
     parser.add_argument("--image", type=str, required=True, help="Path to the input image")
-    parser.add_argument("--model", type=str, default="best_weather_model.pth", help="Path to the model weights")
+    parser.add_argument("--model", type=str, default="best_weather_model_test.pth", help="Path to the model weights")
     args = parser.parse_args()
 
     main(args.image, args.model)

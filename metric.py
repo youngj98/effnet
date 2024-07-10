@@ -73,7 +73,7 @@ def precision_recall_f1score(preds, labels, average='macro'):
 
     return precision, recall, f1_score
 
-def plot_confusion_matrix(true_labels, pred_labels, classes, name):
+def plot_confusion_matrix(true_labels, pred_labels, classes, train_setting, name):
     """
     Plot confusion matrix using true and predicted labels.
 
@@ -89,5 +89,5 @@ def plot_confusion_matrix(true_labels, pred_labels, classes, name):
     plt.ylabel('True')
     plt.title('Confusion Matrix')
     # Save the plot to a file called confusion_matrix_name.png
-    plt.savefig(f'confusion_matrix_{name}.png')
+    plt.savefig(f'results/train/{train_setting}/confusion_matrix_{name}.png')
     plt.show()
