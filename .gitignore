@@ -126,5 +126,6 @@ examples/imagenet/run.sh
 samples/
 results/
 *.jpg
+data_sampling/
 
 

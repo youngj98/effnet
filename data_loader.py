@@ -117,8 +117,20 @@ def sample_files_by_class(files, labels, n_samples=10):
 
 def save_sampled_images(sampled_files, root_dir, save_dir):
     for label, files in sampled_files.items():
-        label_dir = os.path.join(save_dir, str(label))
+        if label == 0:
+            label_dir = os.path.join(save_dir, "Normal")
+        elif label == 1:
+            label_dir = os.path.join(save_dir, "Snowy")
+        elif label == 2:
+            label_dir = os.path.join(save_dir, "Rainy")
+        elif label == 3:
+            label_dir = os.path.join(save_dir, "Hazy")
         os.makedirs(label_dir, exist_ok=True)
+        # remove existing files
+        existing_files = os.listdir(label_dir)
+        for file in existing_files:
+            os.remove(os.path.join(label_dir, file))
+            
         for file in files:
             src = os.path.join(root_dir, file + '.jpg')
             dst = os.path.join(label_dir, file + '.jpg')

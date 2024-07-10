@@ -14,7 +14,7 @@ from plot import plot_metrics, plot_precision_recall_curve
 train_val_dir = '/home/ailab/AILabDataset/01_Open_Dataset/13_AIHUB/Climate/085.다양한 기상 상황 주행 데이터/01.RawDataset/training/image_2'
 test_dir = '/home/ailab/AILabDataset/01_Open_Dataset/13_AIHUB/Climate/085.다양한 기상 상황 주행 데이터/01.RawDataset/testing/image_2'
 imagesets_dir = '/home/ailab/AILabDataset/01_Open_Dataset/13_AIHUB/Climate/085.다양한 기상 상황 주행 데이터/01.RawDataset/ImageSets'
-train_setting = 'e2_lr0001_s01'
+train_setting = 'e10_lr0001_s01'
 metrics_save_dir = f'results/train/{train_setting}'
 # 샘플 이미지 저장 경로
 train_save_dir = 'samples/train'
@@ -96,7 +96,7 @@ metrics = {
 }
 
 # Training loop without Gradient Accumulation and with AMP
-num_epochs = 2
+num_epochs = 10
 
 best_val_loss = float('inf')
 best_model_wts = None
