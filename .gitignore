@@ -127,5 +127,6 @@ samples/
 results/
 *.jpg
 data_sampling/
+road/class_distribution
 
 
