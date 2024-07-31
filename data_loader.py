@@ -53,6 +53,25 @@ class WeatherDataset(Dataset):
         except IndexError:
             label = -1  # 파일 이름이 예상한 형식과 다르면 에러 처리
         return label
+    
+class NewWeatherDataset(Dataset):
+    def __init__(self, file_list, transform=None):
+        self.file_list = file_list
+        self.transform = transform
+        
+    def __len__(self):
+        return len(self.file_list)
+    
+    def __getitem__(self, idx):
+        img_name, gt = self.file_list[idx].split(" ")
+        
+        image = Image.open(img_name).convert("RGB")
+
+        if self.transform:
+            image = self.transform(image)
+
+        return image, int(gt)
+
 
 # 파일 리스트 로드 함수
 def load_file_list(filepath):
@@ -79,11 +98,11 @@ def save_class_distribution(labels, dataset_name, save_dir):
         f.write(f"Class distribution in {dataset_name} dataset: {distribution}\n")
     print(f"Class distribution for {dataset_name} saved to {save_dir}")
 
-def get_data_loaders(train_files, val_files, test_files, train_val_dir, test_dir, transform, batch_size=16):
+def get_data_loaders(train_files, val_files, test_files, transform, batch_size=16):
     # Create datasets
-    train_dataset = WeatherDataset(train_files, train_val_dir, transform)
-    val_dataset = WeatherDataset(val_files, train_val_dir, transform)
-    test_dataset = WeatherDataset(test_files, test_dir, transform)
+    train_dataset = NewWeatherDataset(train_files, transform)
+    val_dataset = NewWeatherDataset(val_files, transform)
+    test_dataset = NewWeatherDataset(test_files, transform)
     
     # Create data loaders
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn)

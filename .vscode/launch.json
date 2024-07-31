@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "cwd": "/home/ailab/young/EfficientNet-PyTorch",
+            "cwd": "/home/ailab/AILabDataset/03_Shared_Repository/jonghyun/Project/iitp_bigdata/effnet",
             "args": [
                 // "--image", "/home/ailab/AILabDataset/01_Open_Dataset/05_nuScenes/nuScenes/samples/CAM_FRONT/n008-2018-09-18-14-54-39-0400__CAM_FRONT__1537297364762404.jpg"
             ]
