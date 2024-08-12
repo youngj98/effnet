@@ -55,8 +55,9 @@ class WeatherDataset(Dataset):
         return label
     
 class NewWeatherDataset(Dataset):
-    def __init__(self, file_list, transform=None):
+    def __init__(self, file_list, data_dir, transform=None):
         self.file_list = file_list
+        self.data_dir = data_dir
         self.transform = transform
         
     def __len__(self):
@@ -82,9 +83,9 @@ def load_file_list(filepath):
 def custom_collate_fn(batch):
     images, labels = zip(*batch)
     images = torch.stack(images)
-    climate_labels = torch.tensor(labels)
+    custom_labels = torch.tensor(labels, dtype=torch.long)
 
-    return images, climate_labels
+    return images, custom_labels
 
 def print_class_distribution(labels, dataset_name):
     unique, counts = np.unique(labels, return_counts=True)

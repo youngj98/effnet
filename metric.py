@@ -91,3 +91,24 @@ def plot_confusion_matrix(true_labels, pred_labels, classes, train_setting, name
     # Save the plot to a file called confusion_matrix_name.png
     plt.savefig(f'results/train/{train_setting}/confusion_matrix_{name}.png')
     plt.show()
+
+
+def save_confusion_matrix(true_labels, pred_labels, classes, metrics_save_dir):
+    """
+    Plot confusion matrix using true and predicted labels.
+
+    Args:
+        true_labels (np.array): True labels.
+        pred_labels (np.array): Predicted labels.
+        classes (list): List of class names.
+    """
+    cm = confusion_matrix(true_labels, pred_labels, normalize='true')
+    plt.figure(figsize=(10, 7))
+    sns.heatmap(cm, annot=True, fmt='.2f', cmap='Blues', xticklabels=classes, yticklabels=classes)
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.title('Confusion Matrix')
+    # Save the plot to a file called confusion_matrix_name.png
+    plt.savefig(f'{metrics_save_dir}.png')
+    plt.close()
+    # plt.show()

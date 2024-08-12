@@ -9,8 +9,11 @@ from sklearn.model_selection import train_test_split
 from torch.cuda.amp import GradScaler, autocast
 
 # 경로 설정
-test_dir = '/home/ailab/AILabDataset/01_Open_Dataset/13_AIHUB/Climate/085.다양한 기상 상황 주행 데이터/01.RawDataset/testing/image_2'
-imagesets_dir = '/home/ailab/AILabDataset/01_Open_Dataset/13_AIHUB/Climate/085.다양한 기상 상황 주행 데이터/01.RawDataset/ImageSets'
+# test_dir = '/home/ailab/AILabDataset/01_Open_Dataset/13_AIHUB/Climate/085.다양한 기상 상황 주행 데이터/01.RawDataset/testing/image_2'
+# imagesets_dir = '/home/ailab/AILabDataset/01_Open_Dataset/13_AIHUB/Climate/085.다양한 기상 상황 주행 데이터/01.RawDataset/ImageSets'
+
+test_dir = '/home/ailab/AILabDataset/01_Open_Dataset/13_AIHUB/303.특수환경_자율주행_3D_데이터_고도화/01-1.정식개방데이터/Training/01.원천데이터/image'
+imagesets_dir = "./data"
 
 # Transformations
 transform = transforms.Compose([
@@ -45,38 +48,55 @@ class WeatherDataset(Dataset):
 
     def load_climate_label(self, file_id):
         try:
-            weather_condition = file_id.split('_')[1][0]  # 첫 번째 문자가 기후 정보
-            if weather_condition == 'N':  # Normal
+            xml_path = os.path.join(self.root_dir.replace("JPEGImages", "Annotations"), file_id + '.xml')
+            xml_meta = load_xml(xml_path)
+            
+            info_start = xml_meta.find("<weather>") + 9
+            info_end = xml_meta.find("</weather>")
+            
+            if info_end == -1:
+                gt = file_id.split("-")[0]
+                if "target" in gt:
+                    gt = "foggy"
+            else:
+                gt = xml_meta[info_start:info_end]
+                
+            # gt mapping
+            if gt == 'clear' or gt == 'partly cloudy':
                 label = 0
-            elif weather_condition == "S":  # Snowy
+            elif gt == 'overcast':
                 label = 1
-            elif weather_condition == "R":  # Rainy
+            elif gt == 'foggy' or gt == 'haze' or gt == 'mist':
                 label = 2
-            elif weather_condition == "H":  # Hazy
+            elif gt == 'rainy' or gt == 'rain_storm':
                 label = 3
             else:
-                label = -1  # Unknown Label, ERROR
+                label = -1  
         except IndexError:
-            label = -1  # 파일 이름이 예상한 형식과 다르면 에러 처리
+            label = -1 
         return label
     
-    def load_day_label(self, file_id):
-        try:
-            day_condition = file_id.split('_')[1][1]  # 두 번째 문자가 낮/밤 정보
-            if day_condition == 'D':  # Day
-                label = 0
-            elif day_condition == "N":  # Night
-                label = 1
-            else:
-                label = -1  # Unknown Label, ERROR
-        except IndexError:
-            label = -1  # 파일 이름이 예상한 형식과 다르면 에러 처리
-        return label
+    # def load_day_label(self, file_id):
+    #     try:
+    #         day_condition = file_id.split('_')[1][1]  # 두 번째 문자가 낮/밤 정보
+    #         if day_condition == 'D':  # Day
+    #             label = 0
+    #         elif day_condition == "N":  # Night
+    #             label = 1
+    #         else:
+    #             label = -1  # Unknown Label, ERROR
+    #     except IndexError:
+    #         label = -1  # 파일 이름이 예상한 형식과 다르면 에러 처리
+    #     return label
 
 # 파일 리스트 로드 함수
 def load_file_list(filepath):
     with open(filepath, 'r') as file:
         return file.read().splitlines()
+    
+def load_xml(file_path):
+    with open(file_path, 'r') as file:
+        return file.read()
 
 # 파일 리스트 로드
 test_files = load_file_list(os.path.join(imagesets_dir, 'test.txt'))
@@ -95,6 +115,7 @@ def custom_collate_fn(batch):
     return images, (climate_labels, day_labels)
 
 # 데이터셋 및 데이터로더 생성
+annotation_dir = test_dir.replace("JPEGImages", "Annotations")
 test_dataset = WeatherDataset(test_files_sampled, test_dir, transform)
 test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False, collate_fn=custom_collate_fn)
 

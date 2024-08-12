@@ -1,0 +1,4 @@
+Class Distribution
+daytime: 30626장 (51.33%)
+dawn/dusk: 383장 (0.64%)
+night: 28652장 (48.02%)

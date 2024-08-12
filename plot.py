@@ -3,7 +3,8 @@ import numpy as np
 import torch
 from sklearn.metrics import precision_recall_curve, average_precision_score
 
-class_names = ['Normal', 'Snowy', 'Rainy', 'Hazy']
+# class_names = ['Clear', 'Overcast', 'Foggy', 'Rainy']
+# class_names = ['daytime', 'night']
 
 def plot_image_with_predictions(image, predictions, true_label, pred_label, name):
     """
@@ -81,7 +82,7 @@ def plot_metrics(metrics, save_dir):
     plt.savefig(f'{save_dir}/f1_plot.png')
     plt.close()
 
-def plot_precision_recall_curve(y_true, y_scores, save_dir):
+def plot_precision_recall_curve(y_true, y_scores, class_names, save_dir):
     precision = dict()
     recall = dict()
     average_precision = dict()

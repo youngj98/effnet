@@ -9,10 +9,20 @@ from tqdm import tqdm
 from data_loader import load_file_list, get_data_loaders, print_class_distribution, save_class_distribution, balanced_sampling, sample_files_by_class, save_sampled_images, WeatherDataset, transform
 from metric import precision_recall_f1score, plot_confusion_matrix
 from plot import plot_metrics, plot_precision_recall_curve
+import wandb
 
-
-train_setting = 'e10_lr0001_s01'
+learning_rate = 0.001
+num_epochs = 10
+task = 'weather'
+train_setting = f'e{num_epochs}_lr{str(learning_rate).replace(".", "")}_{task}'
 metrics_save_dir = f'results/train/{train_setting}'
+
+wandb.init(project="weather_classification", config={
+    "learning_rate": learning_rate,
+    "architecture": "EfficientNet-B5",
+    "dataset": "Weather",
+    "epochs": num_epochs,
+})
 
 # 파일 리스트 로드
 imagesets_dir = "./data"
@@ -34,6 +44,7 @@ class CustomHead(torch.nn.Module):
     def __init__(self, num_ftrs):
         super(CustomHead, self).__init__()
         self.fc_climate = torch.nn.Linear(num_ftrs, 4)  # Assuming 4 classes for climate
+        self.fc_time = torch.nn.Linear(num_ftrs, 2)  # Assuming 2 classes for time
 
     def forward(self, x):
         climate = self.fc_climate(x)
@@ -60,7 +71,6 @@ metrics = {
 }
 
 # Training loop without Gradient Accumulation and with AMP
-num_epochs = 10
 
 best_val_loss = float('inf')
 best_model_wts = None
@@ -100,6 +110,14 @@ for epoch in range(num_epochs):
     metrics['train_recall'].append(train_recall)
     metrics['train_f1'].append(train_f1_score)
 
+    wandb.log({
+        'epoch': epoch + 1,
+        'train_loss': train_loss,
+        'train_precision': train_precision,
+        'train_recall': train_recall,
+        'train_f1_score': train_f1_score
+    })
+
     print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {train_loss}')
 
     # Clear cache
@@ -135,6 +153,14 @@ for epoch in range(num_epochs):
     metrics['val_precision'].append(precision)
     metrics['val_recall'].append(recall)
     metrics['val_f1'].append(f1_score)
+
+    wandb.log({
+        'epoch': epoch + 1,
+        'val_loss': avg_val_loss,
+        'val_precision': precision,
+        'val_recall': recall,
+        'val_f1_score': f1_score
+    })
 
     print(f'Validation Loss: {avg_val_loss}, Climate Accuracy: {100 * correct_climate / total}%, Precision: {precision}, Recall: {recall}, F1 Score: {f1_score}')
 
@@ -183,6 +209,13 @@ with torch.no_grad():
 
 precision, recall, f1_score = precision_recall_f1score(test_preds, test_true, average='macro')
 print(f'Accuracy on test dataset: Climate: {100 * correct_climate / total}%, Precision: {precision}, Recall: {recall}, F1 Score: {f1_score}')
+
+wandb.log({
+    'test_accuracy': 100 * correct_climate / total,
+    'test_precision': precision,
+    'test_recall': recall,
+    'test_f1_score': f1_score
+})
 
 # save class distribution and test metrics to txt file
 # with open(f'results/train/{train_setting}/metrics_and_class_distribution.txt', 'w') as f:

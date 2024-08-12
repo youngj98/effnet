@@ -1,0 +1,10 @@
+Class Distribution
+Train daytime: 21438
+Train dawn/dusk: 268
+Train night: 20056
+Validation daytime: 6125
+Validation dawn/dusk: 76
+Validation night: 5730
+Test daytime: 3063
+Test dawn/dusk: 39
+Test night: 2866
