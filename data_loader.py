@@ -82,7 +82,14 @@ def load_file_list(filepath):
 # Custom collate function
 def custom_collate_fn(batch):
     images, labels = zip(*batch)
-    images = torch.stack(images)
+
+    if isinstance(images[0], torch.Tensor):
+        images = torch.stack(images)
+    else:
+        images = torch.stack([transforms.ToTensor()(img) if not isinstance(img, torch.Tensor) else img for img in images])
+
+    # labels = torch.tensor(labels, dtype=torch.long)
+    # images = torch.stack(images)
     custom_labels = torch.tensor(labels, dtype=torch.long)
 
     return images, custom_labels

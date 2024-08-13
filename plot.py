@@ -6,7 +6,7 @@ from sklearn.metrics import precision_recall_curve, average_precision_score
 # class_names = ['Clear', 'Overcast', 'Foggy', 'Rainy']
 # class_names = ['daytime', 'night']
 
-def plot_image_with_predictions(image, predictions, true_label, pred_label, name):
+def plot_image_with_predictions(image, predictions, true_label, pred_label, name, class_names):
     """
     Plot the image with class probabilities and true label.
 
@@ -24,19 +24,36 @@ def plot_image_with_predictions(image, predictions, true_label, pred_label, name
     
     plt.imshow(image)
     plt.axis('off')
-    if true_label is not None:
-        text = f"True Label: {class_names[true_label]}\nPrediction Label: {class_names[pred_label]}\n\nClass probabilities:\n"
-    else:
-        text = f"True Label: None\nPrediction Label: {class_names[pred_label]}\n\nClass probabilities:\n"
-    for i, class_name in enumerate(class_names):
-        if i < len(class_names) - 1:
-            text += f"{class_name}: {predictions[i]:.2f}\n"
-        else:
-            text += f"{class_name}: {predictions[i]:.2f}"
 
-    plt.text(0.24, 0.6, text, fontsize=9, bbox=dict(facecolor='white', alpha=0.8), transform=plt.gcf().transFigure)
-    plt.savefig(f'results/test/output_{name}.png', transparent=True ,bbox_inches='tight')
-    plt.show()
+    if true_label is not None:
+        text = f"True Label: {class_names[true_label]}\n"
+    else:
+        text = "True Label: None\n"
+
+    text += f"Prediction Label: {class_names[pred_label]}\n\nClass probabilities:\n"
+    for i, class_name in enumerate(class_names):
+        text += f"{class_name}: {predictions[i]:.2f}\n"
+
+    # Position the text on the image
+    plt.text(0.02, 0.95, text, fontsize=9, bbox=dict(facecolor='white', alpha=0.7),
+             verticalalignment='top', horizontalalignment='left', transform=plt.gca().transAxes)
+
+    plt.savefig(name, transparent=True, bbox_inches='tight')
+    plt.close()
+
+    # if true_label is not None:
+    #     text = f"True Label: {class_names[true_label]}\nPrediction Label: {class_names[pred_label]}\n\nClass probabilities:\n"
+    # else:
+    #     text = f"True Label: None\nPrediction Label: {class_names[pred_label]}\n\nClass probabilities:\n"
+    # for i, class_name in enumerate(class_names):
+    #     if i < len(class_names) - 1:
+    #         text += f"{class_name}: {predictions[i]:.2f}\n"
+    #     else:
+    #         text += f"{class_name}: {predictions[i]:.2f}"
+
+    # plt.text(0.24, 0.6, text, fontsize=9, bbox=dict(facecolor='white', alpha=0.8), transform=plt.gcf().transFigure)
+    # plt.savefig(f'results/test/output_{name}.png', transparent=True ,bbox_inches='tight')
+    # plt.show()
 
 def plot_metrics(metrics, save_dir):
     epochs = len(metrics['train_loss'])

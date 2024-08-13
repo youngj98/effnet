@@ -1,35 +1,38 @@
 import os
+import gc
 import torch
 import numpy as np
 import argparse
+import matplotlib.pyplot as plt 
 from torchvision import transforms
 from efficientnet_pytorch import EfficientNet
 from torch.utils.data import DataLoader, Dataset
 from data_loader import load_file_list, get_data_loaders, print_class_distribution, save_class_distribution, balanced_sampling, sample_files_by_class, save_sampled_images, NewWeatherDataset, transform, custom_collate_fn
-import gc
 from torch.cuda.amp import GradScaler, autocast
 from tqdm import tqdm
 from PIL import Image
 from metric import precision_recall_f1score, save_confusion_matrix
-from plot import plot_metrics, plot_precision_recall_curve
+from plot import plot_metrics, plot_precision_recall_curve, plot_image_with_predictions
+
 
 def main(args):
     learning_rate = 0.001
     num_epochs = 10
     task = args.task
-    train_setting = f'e{num_epochs}_lr{str(learning_rate).replace(".", "")}_{task}_02' 
+    train_setting = f'e{num_epochs}_lr{str(learning_rate).replace(".", "")}_{task}' 
     metrics_save_dir = f'results/test/{train_setting}'     
     os.makedirs(metrics_save_dir, exist_ok=True)
     
     # 파일 리스트 로드
-    test_dir = '/home/ailab/AILabDataset/01_Open_Dataset/05_nuScenes/nuScenes/samples/CAM_FRONT'
+    # test_dir = '/home/ailab/AILabDataset/01_Open_Dataset/05_nuScenes/nuScenes/samples/CAM_FRONT'
+    test_dir = '/home/ailab/AILabDataset/01_Open_Dataset/13_AIHUB/303.특수환경_자율주행_3D_데이터_고도화/01-1.정식개방데이터/Training/01.원천데이터/image'
     imagesets_dir = "./data"
 
     if task == "weather":
         test_files = load_file_list(os.path.join(imagesets_dir, 'test.txt'))
         class_names = ['clear', 'overcast', 'foggy', 'rainy']
     elif task == "time":
-        test_files = load_file_list(os.path.join(imagesets_dir, 'test_time.txt'))
+        test_files = load_file_list(os.path.join(imagesets_dir, 'test_time_1.txt'))
         class_names = ['daytime', 'night'] # dawn/dusk
     num_cls = len(class_names)
 
@@ -72,17 +75,32 @@ def main(args):
     test_true = []
     test_outputs = []
 
+    output_folder = os.path.join(metrics_save_dir, f'output_images_{task}_AIHub')
+    os.makedirs(output_folder, exist_ok=True)
+
     with torch.no_grad():
         for inputs, labels in tqdm(test_loader, desc='Testing', unit='batch'):
             inputs, labels = inputs.to(device), labels.to(device)
             with autocast():
                 outputs_time = model(inputs)
+            probabilities = torch.softmax(outputs_time, dim=1).cpu().numpy()
             _, predicted_time = torch.max(outputs_time, 1)
             total += labels.size(0)
             correct_time += (predicted_time == labels).sum().item()
             test_preds.extend(predicted_time.cpu().numpy())
             test_true.extend(labels.cpu().numpy())
             test_outputs.extend(outputs_time.cpu().numpy())
+
+            for i in range(inputs.size(0)):
+                image_tensor = inputs[i]
+                prob = probabilities[i]
+                true_label = labels[i].item()  
+                pred_label = predicted_time[i].item()  
+                file_name = os.path.join(output_folder, f'image_{i}.png')
+
+                plt.figure()
+                plot_image_with_predictions(image_tensor, prob, true_label, pred_label, file_name, class_names)
+                plt.close()
 
     precision, recall, f1_score = precision_recall_f1score(test_preds, test_true, average='macro')
     print(f'Accuracy on test dataset: time: {100 * correct_time / total}%, Precision: {precision}, Recall: {recall}, F1 Score: {f1_score}')
@@ -97,6 +115,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Time, Weather Classification Inference")
     parser.add_argument("--task", choices=["weather", "time"], help="choose the task : 'weather of 'time'")
     parser.add_argument("--model", type=str, required=True, help="Path to the model weights")
+    parser.add_argument("--test_dir", type=str, required=True, help="Path to the test directory")
     args = parser.parse_args()
     
     main(args)
