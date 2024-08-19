@@ -55,9 +55,8 @@ class WeatherDataset(Dataset):
         return label
     
 class NewWeatherDataset(Dataset):
-    def __init__(self, file_list, data_dir, transform=None):
+    def __init__(self, file_list, transform=None):
         self.file_list = file_list
-        self.data_dir = data_dir
         self.transform = transform
         
     def __len__(self):
@@ -65,6 +64,8 @@ class NewWeatherDataset(Dataset):
     
     def __getitem__(self, idx):
         img_name, gt = self.file_list[idx].split(" ")
+
+        print(f"Image: {img_name}, Label: {gt}")
         
         image = Image.open(img_name).convert("RGB")
 
@@ -72,8 +73,8 @@ class NewWeatherDataset(Dataset):
             image = self.transform(image)
 
         return image, int(gt)
-
-
+    
+    
 # 파일 리스트 로드 함수
 def load_file_list(filepath):
     with open(filepath, 'r') as file:
@@ -106,7 +107,7 @@ def save_class_distribution(labels, dataset_name, save_dir):
         f.write(f"Class distribution in {dataset_name} dataset: {distribution}\n")
     print(f"Class distribution for {dataset_name} saved to {save_dir}")
 
-def get_data_loaders(train_files, val_files, test_files, transform, batch_size=16):
+def get_data_loaders(train_files, val_files, test_files, transform, batch_size):
     # Create datasets
     train_dataset = NewWeatherDataset(train_files, transform)
     val_dataset = NewWeatherDataset(val_files, transform)

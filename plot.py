@@ -4,7 +4,7 @@ import torch
 from sklearn.metrics import precision_recall_curve, average_precision_score
 
 # class_names = ['Clear', 'Overcast', 'Foggy', 'Rainy']
-# class_names = ['daytime', 'night']
+class_names = ['daytime', 'night']
 
 def plot_image_with_predictions(image, predictions, true_label, pred_label, name, class_names):
     """
