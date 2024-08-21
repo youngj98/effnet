@@ -34,7 +34,7 @@ def main(args):
         class_names = ['clear', 'overcast', 'foggy', 'rainy']
     elif task == "time":
         # test_files = load_file_list(os.path.join(imagesets_dir, 'test_time_1.txt'))
-        test_dir = "/home/ailab/AILabDataset/01_Open_Dataset/13_AIHUB/303.특수환경_자율주행_3D_데이터_고도화/01-1.정식개방데이터/Training/01.원천데이터/image"
+        test_dir = "/home/ailab/AILabDataset/01_Open_Dataset/05_nuScenes/nuScenes/samples/CAM_FRONT"
         class_names = ['daytime', 'night'] # dawn/dusk
     num_cls = len(class_names)
     test_files = [f"{os.path.join(test_dir, f)} 0" for f in os.listdir(test_dir) if f.endswith(('.jpg', '.png', '.jpeg'))]
@@ -80,7 +80,7 @@ def main(args):
     test_true = []
     test_outputs = []
 
-    output_folder = os.path.join(metrics_save_dir, f'output_images_{task}_AIhub')
+    output_folder = os.path.join(metrics_save_dir, f'output_images_{task}_nuScenes')
     os.makedirs(output_folder, exist_ok=True)
 
     with torch.no_grad():
