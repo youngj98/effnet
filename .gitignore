@@ -126,7 +126,9 @@ examples/imagenet/run.sh
 samples/
 results/
 *.jpg
+*.png
 data_sampling/
 road/class_distribution
+class_distri/
 
 

@@ -65,12 +65,15 @@ class NewWeatherDataset(Dataset):
     def __getitem__(self, idx):
         img_name, gt = self.file_list[idx].split(" ")
 
-        print(f"Image: {img_name}, Label: {gt}")
+        # print(f"Image: {img_name}, Label: {gt}")
         
         image = Image.open(img_name).convert("RGB")
 
         if self.transform:
             image = self.transform(image)
+            
+        if gt == '1':           # overcast와 clear를 합친 class 0
+            gt = 0
 
         return image, int(gt)
     

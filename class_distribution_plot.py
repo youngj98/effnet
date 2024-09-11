@@ -15,6 +15,7 @@ def write_txt(image_path, gt_info, dst):
 
 def plot_distribution(class_counts, class_labels, title, save_path):
     plt.figure(figsize=(10, 6))
+    # plt.bar(class_labels, class_counts, color=['blue', 'orange'])
     plt.bar(class_labels, class_counts, color=['blue', 'orange', 'green', 'red'])
     plt.xlabel('Class')
     plt.ylabel('Count')
@@ -23,7 +24,7 @@ def plot_distribution(class_counts, class_labels, title, save_path):
     plt.close()  
 
 def count_classes(gt_info):
-    class_counts = np.zeros(3)
+    class_counts = np.zeros(2)
     for gt in gt_info:
         class_counts[int(gt)] += 1
     return class_counts
@@ -39,7 +40,8 @@ def write_class_distribution_txt(class_counts, class_labels, save_path):
 if __name__ == "__main__":
     target_folders = ["daytime_clear", "daytime_foggy", "dusk_rainy", "night_rainy", "Night-Sunny"]
 
-    class_labels = ['daytime', 'dawn/dusk', 'night']
+    class_labels = ['daytime', 'night']
+    # class_labels = ['clear', 'foggy', 'rainy']
 
     all_image_path = np.array([])
     all_gt_info = np.array([])
@@ -54,6 +56,8 @@ if __name__ == "__main__":
             xml_meta = load_xml(data_path)
             info_start = xml_meta.find("<timeofday>") + 11
             info_end = xml_meta.find("</timeofday>")
+            # info_start = xml_meta.find("<weather>") + 9
+            # info_end = xml_meta.find("</weather>")
             
             if info_end == -1:  # No </timeofday> tag found
                 print(f"No <timeofday> tag found in XML: {data_path}")
@@ -72,20 +76,20 @@ if __name__ == "__main__":
             # if gt == 'clear' or gt == 'partly cloudy':
             #     gt_int = 0
             # elif gt == 'overcast':
-            #     gt_int = 1
+            #     gt_int = 0
             # elif gt == 'foggy' or gt == 'haze' or gt == 'mist':
-            #     gt_int = 2
+            #     gt_int = 1
             # elif gt == 'rainy' or gt == 'rain_storm':
-            #     gt_int = 3
+            #     gt_int = 2
             # else:
             #     raise ValueError("Unknown weather type: ", gt)
 
             if gt == 'daytime':
                 gt_int = 0
+            elif gt == 'dawn/dusk':
+                gt_int = 0
             elif gt == 'night':
                 gt_int = 1
-            # elif gt == 'night':
-            #     gt_int = 2
             else:
                 raise ValueError("Unknown weather type: ", gt)
 
@@ -141,11 +145,11 @@ if __name__ == "__main__":
     valid_class_counts = count_classes(valid_gt_info)
     test_class_counts = count_classes(test_gt_info)
     
-    plot_distribution(train_class_counts, class_labels, 'Train Dataset Class Distribution', '/home/ailab/AILabDataset/03_Shared_Repository/jonghyun/Project/iitp_bigdata/effnet/Fig/train_class_distribution_time.jpg')
-    plot_distribution(valid_class_counts, class_labels, 'Validation Dataset Class Distribution', '/home/ailab/AILabDataset/03_Shared_Repository/jonghyun/Project/iitp_bigdata/effnet/Fig/valid_class_distribution_time.jpg')
-    plot_distribution(test_class_counts, class_labels, 'Test Dataset Class Distribution', '/home/ailab/AILabDataset/03_Shared_Repository/jonghyun/Project/iitp_bigdata/effnet/Fig/test_class_distribution_time.jpg')
+    plot_distribution(train_class_counts, class_labels, 'Train Dataset Class Distribution', '/home/ailab/young/EfficientNet-PyTorch/class_distri//time/train_class_distribution_time.jpg')
+    plot_distribution(valid_class_counts, class_labels, 'Validation Dataset Class Distribution', '/home/ailab/young/EfficientNet-PyTorch/class_distri/time/valid_class_distribution_time.jpg')
+    plot_distribution(test_class_counts, class_labels, 'Test Dataset Class Distribution', '/home/ailab/young/EfficientNet-PyTorch/class_distri/time/test_class_distribution_time.jpg')
     
-    with open('/home/ailab/AILabDataset/03_Shared_Repository/jonghyun/Project/iitp_bigdata/effnet/Fig/class_distribution.txt', 'w') as f:
+    with open('/home/ailab/young/EfficientNet-PyTorch/class_distri/time/class_distribution.txt', 'w') as f:
         f.write("Class Distribution\n")
         for label, count in zip(class_labels, train_class_counts):
             f.write(f"Train {label}: {int(count)}\n")
@@ -156,4 +160,5 @@ if __name__ == "__main__":
 
     total_class_counts = count_classes(all_gt_info)
 
-    write_class_distribution_txt(total_class_counts, class_labels, '/home/ailab/AILabDataset/03_Shared_Repository/jonghyun/Project/iitp_bigdata/effnet/Fig/total_class_distribution.txt')
+    write_class_distribution_txt(total_class_counts, class_labels, '/home/ailab/young/EfficientNet-PyTorch/class_distri/time/total_class_distribution.txt')
+    plot_distribution(total_class_counts, class_labels, 'Total Dataset Class Distribution', '/home/ailab/young/EfficientNet-PyTorch/class_distri/time/total_class_distribution_time.jpg')

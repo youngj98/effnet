@@ -11,10 +11,13 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "cwd": "/home/ailab/AILabDataset/03_Shared_Repository/jonghyun/Project/iitp_bigdata/effnet",
+            "cwd": "/home/ailab/young/EfficientNet-PyTorch",
             "args": [
-                "--task", "time",
-                "--model", "/home/ailab/AILabDataset/03_Shared_Repository/jonghyun/Project/iitp_bigdata/effnet/best_time_model_e10_lr0001_s01.pth"
+                "--task", "weather",
+                "--gpus", "0",
+                // "--model", "/home/ailab/young/EfficientNet-PyTorch/best_model_time_e10_lr0001_1.pth",
+                // "--image", "/home/ailab/AILabDataset/01_Open_Dataset/05_nuScenes/nuScenes/samples/CAM_FRONT/n008-2018-09-18-14-54-39-0400__CAM_FRONT__1537297366262404.jpg"
+                // "--model", "/home/ailab/AILabDataset/03_Shared_Repository/jonghyun/Project/iitp_bigdata/effnet/best_time_model_e10_lr0001_s01.pth"
             ]
         }
     ]
