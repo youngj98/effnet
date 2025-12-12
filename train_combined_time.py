@@ -9,7 +9,7 @@ from tqdm import tqdm
 from data_loader import load_file_list, get_data_loaders, print_class_distribution, save_class_distribution, balanced_sampling, sample_files_by_class, save_sampled_images, WeatherDataset, transform
 from metric import precision_recall_f1score, plot_confusion_matrix
 from plot import plot_metrics, plot_precision_recall_curve
-# import wandb
+import wandb
 import argparse
 
 # Define a custom head for the model to predict climate
@@ -25,22 +25,18 @@ class CustomHead(torch.nn.Module):
 def main(args):
     learning_rate = 0.001
     num_epochs = 10
-    batch_size = 16
-    task = args.task
-    train_setting = f'{task}_e{num_epochs}_lr{str(learning_rate).replace(".", "")}'
+    batch_size = 64
+    train_setting = f'time_e{num_epochs}_lr{str(learning_rate).replace(".", "")}'
     metrics_save_dir = f'results/train/{train_setting}'
     
-    if task == 'weather':
-        classes=['Clear', 'Overcast', 'Foggy', 'Rainy']
-    else:
-        classes=['Daytime', 'Night']
+    classes=['Daytime', 'Night']
     num_cls = len(classes)
-    # wandb.init(project="weather_classification", config={
-    #     "learning_rate": learning_rate,
-    #     "architecture": "EfficientNet-B5",
-    #     "dataset": "Weather",
-    #     "epochs": num_epochs,
-    # })
+    wandb.init(project="time_classification", config={
+        "learning_rate": learning_rate,
+        "architecture": "EfficientNet-B5",
+        "dataset": "Time",
+        "epochs": num_epochs,
+    })
 
     # 파일 리스트 로드
     imagesets_dir = "./data"
@@ -55,15 +51,17 @@ def main(args):
     model = EfficientNet.from_name('efficientnet-b5')
     if torch.cuda.is_available():
         device = torch.device(f'cuda:{args.gpus[0]}')  # 첫 번째 GPU를 메인 디바이스로 설정
-        if len(args.gpus) > 1:
-            # 여러 개의 GPU를 사용하는 경우 DataParallel 사용
-            model = torch.nn.DataParallel(model, device_ids=args.gpus)
     else:
         device = torch.device("cpu")
+    
     model = model.to(device)
     num_ftrs = model._fc.in_features
     model._fc = CustomHead(num_ftrs, num_cls)
     model._fc = model._fc.to(device)  # Ensure the final layer is on the correct device
+    
+    if torch.cuda.is_available() and len(args.gpus) > 1:
+        # 여러 개의 GPU를 사용하는 경우 DataParallel 사용
+        model = torch.nn.DataParallel(model, device_ids=args.gpus)
 
     # Define loss and optimizer
     criterion = torch.nn.CrossEntropyLoss()
@@ -122,13 +120,13 @@ def main(args):
         metrics['train_recall'].append(train_recall)
         metrics['train_f1'].append(train_f1_score)
 
-        # wandb.log({
-        #     'epoch': epoch + 1,
-        #     'train_loss': train_loss,
-        #     'train_precision': train_precision,
-        #     'train_recall': train_recall,
-        #     'train_f1_score': train_f1_score
-        # })
+        wandb.log({
+            'epoch': epoch + 1,
+            'train_loss': train_loss,
+            'train_precision': train_precision,
+            'train_recall': train_recall,
+            'train_f1_score': train_f1_score
+        })
 
         print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {train_loss}')
 
@@ -166,15 +164,15 @@ def main(args):
         metrics['val_recall'].append(recall)
         metrics['val_f1'].append(f1_score)
 
-        # wandb.log({
-        #     'epoch': epoch + 1,
-        #     'val_loss': avg_val_loss,
-        #     'val_precision': precision,
-        #     'val_recall': recall,
-        #     'val_f1_score': f1_score
-        # })
+        wandb.log({
+            'epoch': epoch + 1,
+            'val_loss': avg_val_loss,
+            'val_precision': precision,
+            'val_recall': recall,
+            'val_f1_score': f1_score
+        })
 
-        print(f'Validation Loss: {avg_val_loss}, {task} Accuracy: {100 * correct / total}%, Precision: {precision}, Recall: {recall}, F1 Score: {f1_score}')
+        print(f'Validation Loss: {avg_val_loss}, Time Accuracy: {100 * correct / total}%, Precision: {precision}, Recall: {recall}, F1 Score: {f1_score}')
 
         # 가장 좋은 모델 가중치 저장
         if avg_val_loss < best_val_loss:
@@ -220,14 +218,14 @@ def main(args):
             test_outputs.extend(outputs.cpu().numpy())
 
     precision, recall, f1_score = precision_recall_f1score(test_preds, test_true, average='macro')
-    print(f'Accuracy on test dataset: {task}: {100 * correct / total}%, Precision: {precision}, Recall: {recall}, F1 Score: {f1_score}')
+    print(f'Accuracy on test dataset: Time: {100 * correct / total}%, Precision: {precision}, Recall: {recall}, F1 Score: {f1_score}')
 
-    # wandb.log({
-    #     'test_accuracy': 100 * correct / total,
-    #     'test_precision': precision,
-    #     'test_recall': recall,
-    #     'test_f1_score': f1_score
-    # })
+    wandb.log({
+        'test_accuracy': 100 * correct / total,
+        'test_precision': precision,
+        'test_recall': recall,
+        'test_f1_score': f1_score
+    })
 
     # save class distribution and test metrics to txt file
     # with open(f'results/train/{train_setting}/metrics_and_class_distribution.txt', 'w') as f:
@@ -266,9 +264,8 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Time, Weather Classification Training")
-    parser.add_argument("--task", choices=["weather", "time"], help="choose the task : 'weather of 'time'")
-    parser.add_argument('--gpus', nargs='+', type=int, default='0')
+    parser = argparse.ArgumentParser(description="Time Classification Training")
+    parser.add_argument('--gpus', nargs='+', type=int, default=[0])
     args = parser.parse_args()
     
     main(args)

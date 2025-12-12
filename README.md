@@ -267,3 +267,36 @@ See `examples/imagenet` for details about evaluating on ImageNet.
 If you find a bug, create a GitHub issue, or even better, submit a pull request. Similarly, if you have questions, simply post them as GitHub issues.
 
 I look forward to seeing what the community does with these models!
+
+
+
+### For AILab
+
+## Set Environment
+conda create -n effnet_py38 python=3.8
+conda activate effnet_py38
+
+CUDA에 맞는 torch 설치
+pip install tqdm
+pip install matplotlib
+pip install seaborn
+pip install scikit-learn
+pip install wandb
+
+## Data
+data/train.txt, valid.txt, test.txt -> Weather
+data/train_time_1.txt, valid_time_1.txt, test_time_1.txt -> Time
+
+## Clasee
+Weather
+0: Clear, 1: Overcast, 2: Foggy, 3: Rainy
+
+Time
+0: Daytime, 1: Night
+
+## Train
+Weather
+python train_combined_weather.py --gpus 0 1 2 3
+
+Time
+python train_combined_time.py --gpus 0 1 2 3

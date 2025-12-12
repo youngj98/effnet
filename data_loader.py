@@ -72,8 +72,8 @@ class NewWeatherDataset(Dataset):
         if self.transform:
             image = self.transform(image)
             
-        if gt == '1':           # overcast와 clear를 합친 class 0
-            gt = 0
+        # if gt == '1':           # overcast와 clear를 합친 class 0
+        #     gt = 0
 
         return image, int(gt)
     
