@@ -8,6 +8,10 @@ on:
 jobs:
   pypi-job:
     runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      
     steps:
       - uses: actions/checkout@v2
       - name: Install twine
