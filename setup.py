@@ -12,13 +12,13 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'efficientnet_pytorch'
+NAME = 'efficientnet_pytorch_youngj98'
 DESCRIPTION = 'EfficientNet implemented in PyTorch.'
 URL = 'https://github.com/lukemelas/EfficientNet-PyTorch'
 EMAIL = 'lmelaskyriazi@college.harvard.edu'
 AUTHOR = 'Luke'
 REQUIRES_PYTHON = '>=3.5.0'
-VERSION = '0.7.1'
+VERSION = '0.7.2'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
