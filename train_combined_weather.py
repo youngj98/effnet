@@ -11,6 +11,7 @@ from metric import precision_recall_f1score, plot_confusion_matrix
 from plot import plot_metrics, plot_precision_recall_curve
 import wandb
 import argparse
+import copy
 
 # Define a custom head for the model to predict climate
 class CustomHead(torch.nn.Module):
@@ -83,6 +84,15 @@ def main(args):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     scaler = GradScaler()
 
+    # LR 스케줄: warmup 3 epoch(lr x0.1 -> x1.0) 후 cosine annealing으로 eta_min까지 감쇠
+    warmup_epochs = 3
+    warmup = torch.optim.lr_scheduler.LinearLR(
+        optimizer, start_factor=0.1, total_iters=warmup_epochs)
+    cosine = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=num_epochs - warmup_epochs, eta_min=1e-6)
+    scheduler = torch.optim.lr_scheduler.SequentialLR(
+        optimizer, [warmup, cosine], milestones=[warmup_epochs])
+
     # Metrics dictionary
     metrics = {
         'train_loss': [],
@@ -98,6 +108,8 @@ def main(args):
     # Training loop without Gradient Accumulation and with AMP
 
     best_val_loss = float('inf')
+    best_f1 = -1.0
+    best_epoch = -1
     best_model_wts = None
 
     for epoch in range(num_epochs):
@@ -189,12 +201,22 @@ def main(args):
 
         print(f'Validation Loss: {avg_val_loss}, Weather Accuracy: {100 * correct / total}%, Precision: {precision}, Recall: {recall}, F1 Score: {f1_score}')
 
-        # 가장 좋은 모델 가중치 저장
-        if avg_val_loss < best_val_loss:
+        # 가장 좋은 모델 가중치 저장 (macro-F1 기준)
+        # state_dict()는 텐서의 참조만 돌려주므로 deepcopy가 없으면 이후 에폭의 갱신이
+        # 그대로 반영되어 결국 '최종 에폭' 가중치가 저장된다.
+        if f1_score > best_f1:
+            best_f1 = f1_score
             best_val_loss = avg_val_loss
-            best_model_wts = model.state_dict()
+            best_epoch = epoch + 1
+            best_model_wts = copy.deepcopy(model.state_dict())
+            print(f'  -> best updated (epoch {best_epoch}, macro-F1 {best_f1:.4f})')
+
+        # LR 스케줄 갱신: 배치 루프가 아니라 에폭 단위로 1회
+        wandb.log({'epoch': epoch + 1, 'lr': optimizer.param_groups[0]['lr']})
+        scheduler.step()
 
     # 가장 좋은 모델 가중치 저장
+    print(f'Best epoch: {best_epoch} (macro-F1 {best_f1:.4f}, val_loss {best_val_loss:.4f})')
     torch.save(best_model_wts, f'best_model_{folder_name}.pth')
 
     print('Finished Training')
