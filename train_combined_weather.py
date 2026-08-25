@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 import gc
 from torch.cuda.amp import GradScaler, autocast
 from tqdm import tqdm
-from data_loader import load_file_list, get_data_loaders, print_class_distribution, save_class_distribution, balanced_sampling, sample_files_by_class, save_sampled_images, WeatherDataset, transform
+from data_loader import load_file_list, get_data_loaders, print_class_distribution, save_class_distribution, balanced_sampling, sample_files_by_class, save_sampled_images, WeatherDataset, transform, train_transform, eval_transform
 from metric import precision_recall_f1score, plot_confusion_matrix
 from plot import plot_metrics, plot_precision_recall_curve
 import wandb
@@ -23,33 +23,36 @@ class CustomHead(torch.nn.Module):
         return result
         
 def main(args):
-    learning_rate = 0.001
-    num_epochs = 20
+    learning_rate = 0.0001
+    num_epochs = 100
     batch_size = 64
-    train_setting = f'weather_e{num_epochs}_lr{str(learning_rate).replace(".", "")}'
-    folder_name = f'{train_setting}_260505'
+    train_setting = f'weather_e{num_epochs}_lr{str(learning_rate).replace(".", "")}_b{batch_size}'
+    folder_name = f'{train_setting}_260825_bdd100k_b3_class_4'
     metrics_save_dir = f'results/train/{folder_name}'
     
-    classes=['Clear', 'Overcast', 'Foggy', 'Rainy']
+    # classes=['Clear', 'Overcast', 'Rainy', 'Snowy']
+    # classes=['Clear', 'Overcast', 'Foggy', 'Rainy', 'Snowy']
+    classes=['Clear', 'Overcast', 'Rainy', 'Snowy']
     num_cls = len(classes)
     wandb.init(project="weather_classification", config={
         "learning_rate": learning_rate,
-        "architecture": "EfficientNet-B5",
+        "architecture": "EfficientNet-B3",
         "dataset": "Weather",
         "epochs": num_epochs,
     })
 
     # 파일 리스트 로드
     imagesets_dir = "./data"
-    train_files = load_file_list(os.path.join(imagesets_dir, 'train_local.txt'))
-    val_files = load_file_list(os.path.join(imagesets_dir, 'valid_local.txt'))
-    test_files = load_file_list(os.path.join(imagesets_dir, 'test_local.txt'))
+    train_files = load_file_list(os.path.join(imagesets_dir, 'scene_as_split_no_foggy/train.txt'))
+    val_files = load_file_list(os.path.join(imagesets_dir, 'scene_as_split_no_foggy/val.txt'))
+    test_files = load_file_list(os.path.join(imagesets_dir, 'scene_as_split_no_foggy/test.txt'))
 
     # 데이터로더 생성
-    train_loader, val_loader, test_loader = get_data_loaders(train_files, val_files, test_files, transform, batch_size)
+    train_loader, val_loader, test_loader = get_data_loaders(train_files, val_files, test_files, train_transform, eval_transform, batch_size)
 
     # Load the EfficientNet model
-    model = EfficientNet.from_name('efficientnet-b5')
+    model = EfficientNet.from_name('efficientnet-b3')
+    # model = EfficientNet.from_pretrained('efficientnet-b3')
     if torch.cuda.is_available():
         device = torch.device(f'cuda:{args.gpus[0]}')  # 첫 번째 GPU를 메인 디바이스로 설정
     else:
@@ -64,9 +67,20 @@ def main(args):
         # 여러 개의 GPU를 사용하는 경우 DataParallel 사용
         model = torch.nn.DataParallel(model, device_ids=args.gpus)
 
+    # 클래스 불균형 보정: train 클래스별 개수의 역수로 가중치 계산 (sklearn의 'balanced'와 동일한 공식)
+    # 완전한 inverse-frequency는 비율이 너무 커서(Rainy/Clear ≈ 7.6배) 소수 클래스 쪽으로 과보정되어
+    # precision/전체 accuracy가 떨어지는 부작용이 있었음 -> sqrt로 완화 (비율 ≈ 2.76배)
+    train_labels_for_weight = [int(line.split(" ")[1]) for line in train_files]
+    class_counts = np.bincount(train_labels_for_weight, minlength=num_cls)
+    class_weights = np.sqrt(len(train_labels_for_weight) / (num_cls * class_counts))
+    class_weights = torch.tensor(class_weights, dtype=torch.float32).to(device)
+    print(f"Class counts (train): {class_counts.tolist()}")
+    print(f"Class weights: {class_weights.tolist()}")
+
     # Define loss and optimizer
+    # criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     scaler = GradScaler()
 
     # Metrics dictionary
@@ -146,9 +160,9 @@ def main(args):
         with torch.no_grad():
             for inputs, labels in tqdm(val_loader, desc='Validation', unit='batch'):
                 inputs, labels = inputs.to(device), labels.to(device)
-                with autocast():
-                    outputs = model(inputs)
-                    loss = criterion(outputs, labels)
+                # with autocast():
+                outputs = model(inputs)
+                loss = criterion(outputs.float(), labels)
                 val_loss += loss.item()
                 _, predicted = torch.max(outputs, 1)
                 total += labels.size(0)
@@ -209,8 +223,8 @@ def main(args):
     with torch.no_grad():
         for inputs, labels in tqdm(test_loader, desc='Testing', unit='batch'):
             inputs, labels = inputs.to(device), labels.to(device)
-            with autocast():
-                outputs = model(inputs)
+            # with autocast():
+            outputs = model(inputs)
             _, predicted = torch.max(outputs, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()

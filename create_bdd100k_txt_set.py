@@ -29,16 +29,26 @@ Weather classes
   4 : snowy
   (skip: undefined)
 '''
+# WEATHER_MAP = {
+#     "clear":         0,
+#     "partly cloudy": 0,
+#     "overcast":      1,
+#     "foggy":         2,
+#     "rainy":         3,
+#     "snowy":         4,
+# }
+# WEATHER_CLASS_NAMES = {0: "Clear", 1: "Overcast", 2: "Foggy", 3: "Rainy", 4: "Snowy"}
+# WEATHER_COLORS      = ["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B2"]
+
 WEATHER_MAP = {
     "clear":         0,
     "partly cloudy": 0,
     "overcast":      1,
-    "foggy":         2,
-    "rainy":         3,
-    "snowy":         4,
+    "rainy":         2,
+    "snowy":         3,
 }
-WEATHER_CLASS_NAMES = {0: "Clear", 1: "Overcast", 2: "Foggy", 3: "Rainy", 4: "Snowy"}
-WEATHER_COLORS      = ["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B2"]
+WEATHER_CLASS_NAMES = {0: "Clear", 1: "Overcast", 2: "Rainy", 3: "Snowy"}
+WEATHER_COLORS      = ["#4C72B0", "#DD8452", "#55A868", "#C44E52"]
 
 '''
 Time-of-day classes
@@ -226,7 +236,7 @@ def run_pipeline(label_key, label_map, class_names, colors, save_dir, plot_dir):
 
     for split, paths, lbl in splits:
         write_txt(paths, lbl,
-                  os.path.join(save_dir, f"bdd100k_{label_key}_{split}.txt"))
+                  os.path.join(save_dir, f"bdd100k_{label_key}_{split}_no_foggy.txt"))
 
     # plot
     print()
@@ -234,7 +244,7 @@ def run_pipeline(label_key, label_map, class_names, colors, save_dir, plot_dir):
         plot_distribution(
             lbl,
             title=f"BDD100K {label_key.capitalize()} Distribution — {split}",
-            save_path=os.path.join(plot_dir, f"bdd100k_{label_key}_{split}.png"),
+            save_path=os.path.join(plot_dir, f"bdd100k_{label_key}_{split}_no_foggy.png"),
             class_names=class_names,
             colors=colors,
         )

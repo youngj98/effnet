@@ -9,10 +9,24 @@ import shutil
 
 # Transformations
 transform = transforms.Compose([
-    transforms.RandomResizedCrop(224),
+    transforms.RandomResizedCrop(300),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
+
+NORM = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
+# 전체 프레임 유지. 16:9를 정사각으로 눌러도 하늘/노면 정보는 보존됨
+train_transform = transforms.Compose([
+    transforms.Resize((320, 320)),
+    transforms.RandomCrop(300),              # ±6% 약한 crop
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(), NORM,
+])
+eval_transform = transforms.Compose([
+    transforms.Resize((300, 300)),           # 랜덤 요소 없음
+    transforms.ToTensor(), NORM,
 ])
 
 # Custom dataset class
@@ -110,16 +124,16 @@ def save_class_distribution(labels, dataset_name, save_dir):
         f.write(f"Class distribution in {dataset_name} dataset: {distribution}\n")
     print(f"Class distribution for {dataset_name} saved to {save_dir}")
 
-def get_data_loaders(train_files, val_files, test_files, transform, batch_size):
+def get_data_loaders(train_files, val_files, test_files, train_transform, eval_transform, batch_size, num_workers=4):
     # Create datasets
-    train_dataset = NewWeatherDataset(train_files, transform)
-    val_dataset = NewWeatherDataset(val_files, transform)
-    test_dataset = NewWeatherDataset(test_files, transform)
+    train_dataset = NewWeatherDataset(train_files, train_transform)
+    val_dataset = NewWeatherDataset(val_files, eval_transform)
+    test_dataset = NewWeatherDataset(test_files, eval_transform)
     
     # Create data loaders
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn, num_workers=num_workers, pin_memory=True, persistent_workers=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers, pin_memory=True, persistent_workers=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers, pin_memory=True, persistent_workers=True)
     
     return train_loader, val_loader, test_loader
 
