@@ -153,7 +153,7 @@ def main(args):
             'train_precision': train_precision,
             'train_recall': train_recall,
             'train_f1_score': train_f1_score
-        })
+        }, step=epoch + 1)
 
         print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {train_loss}')
 
@@ -197,7 +197,7 @@ def main(args):
             'val_precision': precision,
             'val_recall': recall,
             'val_f1_score': f1_score
-        })
+        }, step=epoch + 1)
 
         print(f'Validation Loss: {avg_val_loss}, Weather Accuracy: {100 * correct / total}%, Precision: {precision}, Recall: {recall}, F1 Score: {f1_score}')
 
@@ -212,7 +212,7 @@ def main(args):
             print(f'  -> best updated (epoch {best_epoch}, macro-F1 {best_f1:.4f})')
 
         # LR 스케줄 갱신: 배치 루프가 아니라 에폭 단위로 1회
-        wandb.log({'epoch': epoch + 1, 'lr': optimizer.param_groups[0]['lr']})
+        wandb.log({'lr': optimizer.param_groups[0]['lr']}, step=epoch + 1)
         scheduler.step()
 
     # 가장 좋은 모델 가중치 저장
