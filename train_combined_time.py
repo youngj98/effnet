@@ -27,14 +27,18 @@ def main(args):
     learning_rate = 0.001
     num_epochs = 10
     batch_size = 64
-    train_setting = f'time_e{num_epochs}_lr{str(learning_rate).replace(".", "")}'
-    metrics_save_dir = f'results/train/{train_setting}'
-    
-    classes=['Daytime', 'Night']
+    model_name = 'efficientnet-b3'
+
+    classes = ['Daytime', 'Night']
     num_cls = len(classes)
+
+    train_setting = f'time_e{num_epochs}_lr{str(learning_rate).replace(".", "")}_b{batch_size}'
+    folder_name = f'{train_setting}_260831_dwd_{model_name.split("-")[-1]}_class_{num_cls}'
+    metrics_save_dir = f'results/train/{folder_name}'
+
     wandb.init(project="time_classification", config={
         "learning_rate": learning_rate,
-        "architecture": "EfficientNet-B3",
+        "architecture": model_name,
         "dataset": "Time",
         "epochs": num_epochs,
     })
@@ -49,7 +53,7 @@ def main(args):
     train_loader, val_loader, test_loader = get_data_loaders(train_files, val_files, test_files, train_transform, eval_transform, batch_size)
 
     # Load the EfficientNet model
-    model = EfficientNet.from_name('efficientnet-b3')
+    model = EfficientNet.from_name(model_name)
     # model = EfficientNet.from_pretrained('efficientnet-b3')
     if torch.cuda.is_available():
         device = torch.device(f'cuda:{args.gpus[0]}')  # 첫 번째 GPU를 메인 디바이스로 설정
@@ -201,7 +205,7 @@ def main(args):
 
     # 가장 좋은 모델 가중치 저장
     print(f'Best epoch: {best_epoch} (val_loss {best_val_loss:.4f})')
-    torch.save(best_model_wts, f'best_model_{train_setting}_1.pth')
+    torch.save(best_model_wts, f'best_model_{folder_name}.pth')
 
     print('Finished Training')
 
@@ -213,10 +217,10 @@ def main(args):
     plot_precision_recall_curve(np.array(val_true), np.array(val_outputs), classes, metrics_save_dir)
 
     # Confusion Matrix for Train
-    plot_confusion_matrix(train_true, train_preds, classes=classes, folder_name=train_setting,  name='Train')
+    plot_confusion_matrix(train_true, train_preds, classes=classes, folder_name=folder_name,  name='Train')
 
     # 저장된 가장 좋은 모델 가중치를 로드
-    model.load_state_dict(torch.load(f'best_model_{train_setting}_1.pth'))
+    model.load_state_dict(torch.load(f'best_model_{folder_name}.pth'))
 
     # Evaluation on test dataset
     model.eval()
@@ -281,7 +285,7 @@ def main(args):
     #     f.write(f'Accuracy: {100 * correct_climate / total}%, Precision: {precision}, Recall: {recall}, F1 Score: {f1_score}')
 
     # Confusion Matrix for Test
-    plot_confusion_matrix(test_true, test_preds, classes=classes, folder_name=train_setting, name='Test')
+    plot_confusion_matrix(test_true, test_preds, classes=classes, folder_name=folder_name, name='Test')
 
 
 if __name__ == "__main__":
