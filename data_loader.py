@@ -124,7 +124,7 @@ def save_class_distribution(labels, dataset_name, save_dir):
         f.write(f"Class distribution in {dataset_name} dataset: {distribution}\n")
     print(f"Class distribution for {dataset_name} saved to {save_dir}")
 
-def get_data_loaders(train_files, val_files, test_files, train_transform, eval_transform, batch_size, num_workers=4):
+def get_data_loaders(train_files, val_files, test_files, train_transform, eval_transform, batch_size, num_workers=8):
     # Create datasets
     train_dataset = NewWeatherDataset(train_files, train_transform)
     val_dataset = NewWeatherDataset(val_files, eval_transform)

@@ -26,9 +26,9 @@ class CustomHead(torch.nn.Module):
 def main(args):
     learning_rate = 0.0001
     num_epochs = 100
-    batch_size = 64
+    batch_size = 16
     train_setting = f'weather_e{num_epochs}_lr{str(learning_rate).replace(".", "")}_b{batch_size}'
-    folder_name = f'{train_setting}_260825_bdd100k_b3_class_4'
+    folder_name = f'{train_setting}_260827_bdd100k_b7_class_4'
     metrics_save_dir = f'results/train/{folder_name}'
     
     # classes=['Clear', 'Overcast', 'Rainy', 'Snowy']
@@ -37,7 +37,7 @@ def main(args):
     num_cls = len(classes)
     wandb.init(project="weather_classification", config={
         "learning_rate": learning_rate,
-        "architecture": "EfficientNet-B3",
+        "architecture": "EfficientNet-B7",
         "dataset": "Weather",
         "epochs": num_epochs,
     })
@@ -52,8 +52,8 @@ def main(args):
     train_loader, val_loader, test_loader = get_data_loaders(train_files, val_files, test_files, train_transform, eval_transform, batch_size)
 
     # Load the EfficientNet model
-    model = EfficientNet.from_name('efficientnet-b3')
-    # model = EfficientNet.from_pretrained('efficientnet-b3')
+    # model = EfficientNet.from_name('efficientnet-b7')
+    model = EfficientNet.from_pretrained('efficientnet-b7')
     if torch.cuda.is_available():
         device = torch.device(f'cuda:{args.gpus[0]}')  # 첫 번째 GPU를 메인 디바이스로 설정
     else:
