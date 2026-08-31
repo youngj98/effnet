@@ -6,11 +6,12 @@ from torch.utils.data import DataLoader
 import gc
 from torch.cuda.amp import GradScaler, autocast
 from tqdm import tqdm
-from data_loader import load_file_list, get_data_loaders, print_class_distribution, save_class_distribution, balanced_sampling, sample_files_by_class, save_sampled_images, WeatherDataset, transform
+from data_loader import load_file_list, get_data_loaders, print_class_distribution, save_class_distribution, balanced_sampling, sample_files_by_class, save_sampled_images, WeatherDataset, transform, train_transform, eval_transform
 from metric import precision_recall_f1score, plot_confusion_matrix
 from plot import plot_metrics, plot_precision_recall_curve
 import wandb
 import argparse
+import copy
 
 # Define a custom head for the model to predict climate
 class CustomHead(torch.nn.Module):
@@ -33,7 +34,7 @@ def main(args):
     num_cls = len(classes)
     wandb.init(project="time_classification", config={
         "learning_rate": learning_rate,
-        "architecture": "EfficientNet-B5",
+        "architecture": "EfficientNet-B3",
         "dataset": "Time",
         "epochs": num_epochs,
     })
@@ -45,10 +46,11 @@ def main(args):
     test_files = load_file_list(os.path.join(imagesets_dir, 'test_time_1.txt'))
 
     # 데이터로더 생성
-    train_loader, val_loader, test_loader = get_data_loaders(train_files, val_files, test_files, transform, batch_size)
+    train_loader, val_loader, test_loader = get_data_loaders(train_files, val_files, test_files, train_transform, eval_transform, batch_size)
 
     # Load the EfficientNet model
-    model = EfficientNet.from_name('efficientnet-b5')
+    model = EfficientNet.from_name('efficientnet-b3')
+    # model = EfficientNet.from_pretrained('efficientnet-b3')
     if torch.cuda.is_available():
         device = torch.device(f'cuda:{args.gpus[0]}')  # 첫 번째 GPU를 메인 디바이스로 설정
     else:
@@ -65,8 +67,17 @@ def main(args):
 
     # Define loss and optimizer
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     scaler = GradScaler()
+
+    # LR 스케줄: warmup(lr x0.1 -> x1.0) 후 cosine annealing으로 eta_min까지 감쇠
+    warmup_epochs = max(1, int(num_epochs * 0.03))
+    warmup = torch.optim.lr_scheduler.LinearLR(
+        optimizer, start_factor=0.1, total_iters=warmup_epochs)
+    cosine = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=num_epochs - warmup_epochs, eta_min=1e-6)
+    scheduler = torch.optim.lr_scheduler.SequentialLR(
+        optimizer, [warmup, cosine], milestones=[warmup_epochs])
 
     # Metrics dictionary
     metrics = {
@@ -83,6 +94,7 @@ def main(args):
     # Training loop without Gradient Accumulation and with AMP
 
     best_val_loss = float('inf')
+    best_epoch = -1
     best_model_wts = None
 
     for epoch in range(num_epochs):
@@ -126,7 +138,7 @@ def main(args):
             'train_precision': train_precision,
             'train_recall': train_recall,
             'train_f1_score': train_f1_score
-        })
+        }, step=epoch + 1)
 
         print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {train_loss}')
 
@@ -170,16 +182,25 @@ def main(args):
             'val_precision': precision,
             'val_recall': recall,
             'val_f1_score': f1_score
-        })
+        }, step=epoch + 1)
 
         print(f'Validation Loss: {avg_val_loss}, Time Accuracy: {100 * correct / total}%, Precision: {precision}, Recall: {recall}, F1 Score: {f1_score}')
 
         # 가장 좋은 모델 가중치 저장
+        # state_dict()는 텐서의 참조만 돌려주므로 deepcopy가 없으면 이후 에폭의 갱신이
+        # 그대로 반영되어 결국 '최종 에폭' 가중치가 저장된다.
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            best_model_wts = model.state_dict()
+            best_epoch = epoch + 1
+            best_model_wts = copy.deepcopy(model.state_dict())
+            print(f'  -> best updated (epoch {best_epoch}, val_loss {best_val_loss:.4f})')
+
+        # LR 스케줄 갱신: 배치 루프가 아니라 에폭 단위로 1회
+        wandb.log({'lr': optimizer.param_groups[0]['lr']}, step=epoch + 1)
+        scheduler.step()
 
     # 가장 좋은 모델 가중치 저장
+    print(f'Best epoch: {best_epoch} (val_loss {best_val_loss:.4f})')
     torch.save(best_model_wts, f'best_model_{train_setting}_1.pth')
 
     print('Finished Training')
@@ -192,7 +213,7 @@ def main(args):
     plot_precision_recall_curve(np.array(val_true), np.array(val_outputs), classes, metrics_save_dir)
 
     # Confusion Matrix for Train
-    plot_confusion_matrix(train_true, train_preds, classes=classes, train_setting=train_setting,  name='Train')
+    plot_confusion_matrix(train_true, train_preds, classes=classes, folder_name=train_setting,  name='Train')
 
     # 저장된 가장 좋은 모델 가중치를 로드
     model.load_state_dict(torch.load(f'best_model_{train_setting}_1.pth'))
@@ -260,7 +281,7 @@ def main(args):
     #     f.write(f'Accuracy: {100 * correct_climate / total}%, Precision: {precision}, Recall: {recall}, F1 Score: {f1_score}')
 
     # Confusion Matrix for Test
-    plot_confusion_matrix(test_true, test_preds, classes=classes, train_setting=train_setting, name='Test')
+    plot_confusion_matrix(test_true, test_preds, classes=classes, folder_name=train_setting, name='Test')
 
 
 if __name__ == "__main__":
